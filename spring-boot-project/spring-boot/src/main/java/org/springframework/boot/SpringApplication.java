@@ -296,28 +296,40 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		//添加计时器
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		//Java应用程序设置为无头模式，以节省资源和提高性能
 		configureHeadlessProperty();
+		//加载并启动外部参数中传进来的监听器
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			//根据监听器SpringApplicationRunListeners及外部传进来的参数来进行环境的准备
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+			//这个配置用来忽略所有自定义的BeanInfo类的搜索
 			configureIgnoreBeanInfo(environment);
+			//spring-boot启动控制台显示的Banner
 			Banner printedBanner = printBanner(environment);
+			//创建spring容器
 			context = createApplicationContext();
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			//前置处理
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			//容器刷新
 			refreshContext(context);
+			//后置处理
 			afterRefresh(context, applicationArguments);
+			//停止计时
 			stopWatch.stop();
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+			//启动监听器
 			listeners.started(context);
 			callRunners(context, applicationArguments);
 		}
@@ -339,11 +351,15 @@ public class SpringApplication {
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		//获取环境，判断是SERVLET还是REACTIVE的web环境
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		//将参数配置到环境中
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
+		//将配置好的环境放到各个监听器中
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
+		//兼容自定义环境
 		if (!this.isCustomEnvironment) {
 			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
 					deduceEnvironmentClass());
@@ -421,10 +437,14 @@ public class SpringApplication {
 	}
 
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
+		//获取类加载器
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
+		//这里是重点:加载spring.factories文件中的全类名，并返回对应类全路径集合，返回参数类型为Set，用于去重，防止文件中配置重复
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+		//运用反射机制，获取实例
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+		//排序
 		AnnotationAwareOrderComparator.sort(instances);
 		return instances;
 	}
@@ -1223,7 +1243,7 @@ public class SpringApplication {
 	 * @return the running {@link ApplicationContext}
 	 */
 	public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
-		//新建SpringApplication对象，在其构造方法中将所需的参数进行组装
+		//新建SpringApplication对象，在其构造方法中将所需的参数进行组装，最后启动run方法进行运行
 		return new SpringApplication(primarySources).run(args);
 	}
 
